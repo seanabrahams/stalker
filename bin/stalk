@@ -1,21 +1,42 @@
 #!/usr/bin/env ruby
-
-STDERR.sync = STDOUT.sync = true
-
+# This file launches stalk
+# USAGE: 
+# 
+#     stalk [run|start|stop|restart] <jobs.rb> [<job>[,<job>,..]] 
+#
+#     run - run stalker and stay on top
+#     start - start stalk in daemon mode
+#     stop - stop all instances of the application
+#     restart - stop all instances and restart them afterwards
+#
+require 'rubygems'
+require 'daemons'
 require File.expand_path('../../lib/stalker', __FILE__)
 include Stalker
 
-usage = "stalk <jobs.rb> [<job>[,<job>,..]]"
-file = ARGV.shift or abort usage
-jobs = ARGV.shift.split(',') rescue nil
-
+usage = "stalk [run|start|stop|restart] <jobs.rb> [<job>[,<job>,..]]"
+args = Array.new(ARGV)
+command = args.shift or abort usage
+file = args.shift or abort usage
+jobs = args.shift.split(',') rescue nil
 file = "./#{file}" unless file.match(/^[\/.]/)
 
 require file
 
-trap('INT') do
-	puts "\rExiting"
-	exit
-end
+dir ||= Dir.pwd
+pid_dir ||= File.expand_path(File.join(dir, '/tmp/pids'))
 
-Stalker.work jobs
+raise "#{pid_dir} does not exist" unless File.exist?(pid_dir)
+
+options = {
+  :dir_mode => :normal,
+  :dir => pid_dir,
+  :multiple => true,
+  :backtrace => true,
+  :log_output => true,
+  :monitor => true
+}
+
+Daemons.run_proc('Stalk', options) do
+  Stalker.work(jobs)
+end
