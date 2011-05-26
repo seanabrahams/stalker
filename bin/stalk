@@ -21,8 +21,6 @@ file = args.shift or abort usage
 jobs = args.shift.split(',') rescue nil
 file = "./#{file}" unless file.match(/^[\/.]/)
 
-require file
-
 dir ||= Dir.pwd
 pid_dir ||= File.expand_path(File.join(dir, '/tmp/pids'))
 log_dir ||= File.expand_path(File.join(dir, '/log'))
@@ -40,5 +38,6 @@ options = {
 }
 
 Daemons.run_proc('Stalk', options) do
+  require file
   Stalker.work(jobs)
 end
